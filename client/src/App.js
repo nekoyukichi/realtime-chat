@@ -1,25 +1,20 @@
-import logo from './logo.svg';
+import React, { useState } from 'react';
 import './App.css';
+import Login from './components/Login';
+// import ChatRoom from './components/ChatRoom'; // ← 後で作成するので今はコメントアウト
 
 function App() {
+  const [nickname, setNickname] = useState(null);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {nickname
+        ? <div>ChatRoomへ進む予定（まだ未実装）</div>
+        : <Login onLogin={setNickname} />
+      }
     </div>
   );
 }
 
 export default App;
+
