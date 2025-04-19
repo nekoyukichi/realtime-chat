@@ -20,6 +20,7 @@ io.on('connection', socket => {
   });
 
   socket.on('send_message', ({ room, author, message }) => {
+    console.log(`📥 [サーバー] send_message 受信 → room: ${room}, author: ${author}, message: ${message}`);
     const payload = { author, message, timestamp: Date.now() };
     io.to(room).emit('receive_message', payload);
   });
