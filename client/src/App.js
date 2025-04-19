@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import Login from './components/Login';
-// import ChatRoom from './components/ChatRoom'; // ← 後で作成するので今はコメントアウト
+import ChatRoom from './components/ChatRoom';
 
 function App() {
   const [nickname, setNickname] = useState(null);
@@ -9,7 +9,7 @@ function App() {
   return (
     <div className="App">
       {nickname
-        ? <div>ChatRoomへ進む予定（まだ未実装）</div>
+        ? <ChatRoom nickname={nickname} />
         : <Login onLogin={setNickname} />
       }
     </div>
@@ -17,4 +17,3 @@ function App() {
 }
 
 export default App;
-
