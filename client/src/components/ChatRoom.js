@@ -3,28 +3,52 @@
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
+const SOCKET_URL =
+  process.env.REACT_APP_BACKEND_URL ||
+  'http://localhost:4000';
 
 export default function ChatRoom({ nickname }) {
-  const [socket] = useState(() => io(SOCKET_URL));
-  const [room] = useState('general');                // 固定ルーム名
-  const [message, setMessage] = useState('');        // 入力中のテキスト
-  const [messages, setMessages] = useState([]);      // 受信メッセージの配列
+  // ① ソケットは一度だけ生成
+  const [socket] = useState(() => {
+    const sock = io(SOCKET_URL, { autoConnect: false });
+    return sock;
+  });
+
+  const [room] = useState('general');
+  const [message, setMessage] = useState('');
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    // ルーム参加
-    socket.emit('join_room', room);
-    // メッセージ受信時のハンドラ
+    // ② 接続開始
+    socket.connect();
+    console.log('🟢 [Client] socket connecting...');
+
+    // ③ 接続完了したタイミングでルーム参加
+    socket.on('connect', () => {
+      console.log('🟢 [Client] connected, id:', socket.id);
+      console.log(`🔑 [Client] emitting join_room → ${room}`);
+      socket.emit('join_room', room);
+    });
+
+    // ④ メッセージ受信
     socket.on('receive_message', data => {
+      console.log('⬅️ [Client] receive_message:', data);
       setMessages(prev => [...prev, data]);
     });
-    // コンポーネントアンマウント時に切断
-    return () => socket.disconnect();
+
+    // アンマウント時のクリーンアップ
+    return () => {
+      socket.off('connect');
+      socket.off('receive_message');
+      socket.disconnect();
+      console.log('❌ [Client] socket disconnected');
+    };
   }, [socket, room]);
 
-  // メッセージ送信
+  // ⑤ メッセージ送信
   const sendMessage = () => {
     if (!message.trim()) return;
+    console.log('➡️ [Client] send_message:', message);
     socket.emit('send_message', {
       room,
       author: nickname,
@@ -38,14 +62,15 @@ export default function ChatRoom({ nickname }) {
       <h2>ようこそ、{nickname} さん (ルーム: {room})</h2>
       <div style={{
         border: '1px solid #ccc',
-        height: '300px',
+        height: 300,
         overflowY: 'auto',
         padding: '0.5rem',
         marginBottom: '1rem'
       }}>
         {messages.map((m, i) => (
           <div key={i}>
-            <strong>{m.author}</strong> <small>({new Date(m.timestamp).toLocaleTimeString()})</small>
+            <strong>{m.author}</strong>
+            <small> ({new Date(m.timestamp).toLocaleTimeString()})</small>
             <p>{m.message}</p>
           </div>
         ))}
@@ -56,7 +81,7 @@ export default function ChatRoom({ nickname }) {
           type="text"
           value={message}
           onChange={e => setMessage(e.target.value)}
-          onKeyPress={e => e.key === 'Enter' && sendMessage()}
+          onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder="メッセージを入力…"
         />
         <button onClick={sendMessage}>送信</button>
