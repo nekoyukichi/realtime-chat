@@ -3,12 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL =
-  process.env.REACT_APP_BACKEND_URL ||
-  'http://localhost:4000';
+const SOCKET_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
 
 export default function ChatRoom({ nickname }) {
-  // ① ソケットは一度だけ生成
+  // ① ソケットは一度だけ生成（autoConnect: false で明示的に接続）
   const [socket] = useState(() => {
     const sock = io(SOCKET_URL, { autoConnect: false });
     return sock;
@@ -19,24 +17,33 @@ export default function ChatRoom({ nickname }) {
   const [messages, setMessages] = useState([]);
 
   useEffect(() => {
-    // ② 接続開始
+    // ② 入室時に過去メッセージを取得
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/messages/${room}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('📃 [Client] initial messages:', data);
+        setMessages(data);
+      })
+      .catch(err => console.error('❌ [Client] 初期メッセージ取得失敗:', err));
+
+    // ③ 接続開始
     socket.connect();
     console.log('🟢 [Client] socket connecting...');
 
-    // ③ 接続完了したタイミングでルーム参加
+    // ④ 接続完了したらルーム参加
     socket.on('connect', () => {
       console.log('🟢 [Client] connected, id:', socket.id);
       console.log(`🔑 [Client] emitting join_room → ${room}`);
       socket.emit('join_room', room);
     });
 
-    // ④ メッセージ受信
+    // ⑤ メッセージ受信
     socket.on('receive_message', data => {
       console.log('⬅️ [Client] receive_message:', data);
       setMessages(prev => [...prev, data]);
     });
 
-    // アンマウント時のクリーンアップ
+    // クリーンアップ（アンマウント時）
     return () => {
       socket.off('connect');
       socket.off('receive_message');
@@ -45,7 +52,7 @@ export default function ChatRoom({ nickname }) {
     };
   }, [socket, room]);
 
-  // ⑤ メッセージ送信
+  // ⑥ メッセージ送信
   const sendMessage = () => {
     if (!message.trim()) return;
     console.log('➡️ [Client] send_message:', message);
